@@ -101,9 +101,7 @@ def optimizer(f, sess, *args):
     print('Nothing to improve, einsums are already too fast.')
     return
 
-  print(cache)
   timings_table, orders = optimize_einsum(cache[worst_einsum], sess)
-  print(vanilla_wors_timings, timings_table, np.sum(vanilla_wors_timings - timings_table, axis=1))
   absolute_savings = np.sum(vanilla_wors_timings - timings_table, axis=1)
   global_rel_savings = (absolute_savings) / float(vanilla_whole_runtime)
   best_order_idx = np.argmax(global_rel_savings)
