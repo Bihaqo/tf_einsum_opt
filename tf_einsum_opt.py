@@ -65,10 +65,11 @@ def optimizer(f, sess, *args):
     caller_str = "%s:%d" % (caller.filename, caller.lineno)
     if caller_str in cache:
       if cache[caller_str]['subscripts'] != subscripts:
-        raise ValueError('Calling different types of einsum from the same line of code '
-                         'is not supported, %s sometimes calls einsum with argumens "%s"'
-                         'and sometimes with "%s"' % (caller_str, cache[caller_str]['subscripts'],
-                                                      subscripts))
+        raise ValueError('Calling different types of einsum from the same line '
+                         'of code is not supported, %s sometimes calls einsum '
+                         'with argumens "%s" and sometimes with "%s"' %
+                         (caller_str, cache[caller_str]['subscripts'],
+                          subscripts))
       cache[caller_str]['arguments'].append(args)
     else:
       cache[caller_str] = {'subscripts': subscripts, 'arguments': [args]}
@@ -91,15 +92,17 @@ def optimizer(f, sess, *args):
       cur_timings[i] = my_timeit(curr_tens, sess)
     cache[caller_str]['timings'] = cur_timings
   vanilla_einsum_runtime = [np.sum(cache[s]['timings']) for s in cache]
-  print('Einsums constitue %0.1f %% of the running time of the whole function (%f s).' %
-        (100 * np.sum(vanilla_einsum_runtime) / vanilla_whole_runtime, np.sum(vanilla_einsum_runtime)))
+  print('Einsums constitue %0.1f %% of the running time (%f s).' %
+        (100 * np.sum(vanilla_einsum_runtime) / vanilla_whole_runtime,
+         np.sum(vanilla_einsum_runtime)))
 
   worst_einsum_idx = np.argmax([np.max(cache[s]['timings']) for s in cache])
   worst_einsum = list(cache)[worst_einsum_idx]
   vanilla_wors_timings = cache[worst_einsum]['timings']
   print('The slowest einsum (on which we gonna focus) is located in %s and it '
         'constitues %0.1f %% of the running time of the whole function (%f s).' %
-        (worst_einsum, 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime, np.sum(vanilla_wors_timings)))
+        (worst_einsum, 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime,
+         np.sum(vanilla_wors_timings)))
 
   if np.sum(vanilla_wors_timings) / vanilla_whole_runtime < 10:
     print('Nothing to improve, einsums are already too fast.')
@@ -112,7 +115,7 @@ def optimizer(f, sess, *args):
   best_order = orders[best_order_idx]
   best_improovement = 100 * global_rel_savings[best_order_idx]
   if best_improovement >= 20:
-    print('By changing the order of einsum in "%s" to %s you program will run %0.1f %% faster.' %
-          (worst_einsum, best_order, best_improovement))
+    print('By changing the order of einsum in "%s" to %s you program will run '
+          '%0.1f %% faster.' % (worst_einsum, best_order, best_improovement))
   else:
     print('Einsum improvements haven\'t found, good work!')
