@@ -11,10 +11,14 @@ def my_timeit(tens, sess):
   for rep in range(20):
     best_of_three = np.inf
     for i in range(3):
-      start = timeit.default_timer()
-      sess.run(tens)
-      end = timeit.default_timer()
-      best_of_three = min(best_of_three, end - start)
+      try:
+        start = timeit.default_timer()
+        sess.run(tens)
+        end = timeit.default_timer()
+        current_time = end - start
+      except tf.errors.ResourceExhaustedError:
+        current_time = np.inf
+      best_of_three = min(best_of_three, current_time)
     timings.append(best_of_three)
   return np.mean(timings)
 
