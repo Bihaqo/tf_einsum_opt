@@ -108,9 +108,9 @@ def optimizer(f, sess, *args):
             'each, we will not gain much by optimizing them.')
       break
 
-    print('Optimizing einsum in %s, it constitutes it constitues %0.1f%% of '
-          'the overall running time (%f s).' % (caller_str, 100 * rel_timing,
-                                                np.sum(vanilla_einsum_timings)))
+    print('Optimizing einsum in %s, it constitues %0.1f%% of the overall '
+          'running time (%f s).' % (caller_str, 100 * rel_timing,
+                                    np.sum(vanilla_einsum_timings)))
 
     timings_table, orders = optimize_einsum(cache[caller_str], sess)
     absolute_savings = np.sum(vanilla_einsum_timings - timings_table, axis=1)
