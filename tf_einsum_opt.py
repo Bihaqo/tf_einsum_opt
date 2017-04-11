@@ -31,8 +31,7 @@ def freeze_args(argument_list, sess):
   return cheap_args
 
 
-def optimize_einsum(struct, sess):
-  subscripts = struct['subscripts']
+def parse_subscripts(subscripts):
   pos = subscripts.find('->')
   if pos != -1:
     output_str = subscripts[pos:]
@@ -40,7 +39,11 @@ def optimize_einsum(struct, sess):
   else:
     output_str = ''
   argument_strings = np.array(subscripts.split(','))
+  return argument_strings, output_str
 
+
+def optimize_einsum(struct, sess):
+  argument_strings, output_str = parse_subscripts(struct['subscripts'])
   cheap_args = np.array(struct['cheap_args'])
   num_args = len(cheap_args[0])
   orders = np.array(list(itertools.permutations(range(num_args))))
@@ -99,6 +102,7 @@ def optimizer(f, sess, *args):
 
   slowest_to_fastest = np.argsort(vanilla_einsum_runtime)[::-1]
   rel_savings_combined = 0.0
+  improved_orders = {}
   for idx in range(len(slowest_to_fastest)):
     caller_str = cache.keys()[slowest_to_fastest[idx]]
     vanilla_einsum_timings = cache[caller_str]['timings']
@@ -123,9 +127,29 @@ def optimizer(f, sess, *args):
             'run %0.1f %% faster.' % (caller_str, best_order,
                                       100 * best_rel_improvement))
       rel_savings_combined += global_rel_savings[best_order_idx]
+      improved_orders[caller_str] = best_order
     else:
       print('Einsum improvements haven\'t found, good work!')
 
   if rel_savings_combined > 0:
     print('The overall predicted savings from all the recommendations are %f%%' %
           (100 * rel_savings_combined))
+
+  def my_optimizing_einsum(subscripts, *args):
+    caller = getframeinfo(stack()[1][0])
+    caller_str = "%s:%d" % (caller.filename, caller.lineno)
+    if caller_str in improved_orders:
+      order = improved_orders[caller_str]
+      argument_strings, output_str = parse_subscripts(subscripts)
+      subscripts = ','.join(argument_strings[order])
+      subscripts += output_str
+    return original_einsum(subscripts, *args)
+
+  def optimized_func(*args):
+    original_einsum = tf.einsum
+    tf.einsum = my_optimizing_einsum
+    res = f(*args)
+    tf.einsum = original_einsum
+    return res
+
+  return improved_orders, optimized_func
