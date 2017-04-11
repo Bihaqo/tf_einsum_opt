@@ -110,7 +110,7 @@ def optimizer(f, sess, *args):
     vanilla_einsum_timings = cache[caller_str]['timings']
     rel_timing = np.sum(vanilla_einsum_timings) / vanilla_whole_runtime
     if rel_timing < 0.1:
-      print('The rest of einsums are using < 10%% of the overall running time '
+      print('The rest of einsums are using < 10% of the overall running time '
             'each, we will not gain much by optimizing them.')
       break
 
@@ -145,6 +145,7 @@ def optimizer(f, sess, *args):
       argument_strings, output_str = parse_subscripts(subscripts)
       subscripts = ','.join(argument_strings[order])
       subscripts += output_str
+      args = np.array(args)[order]
     return original_einsum(subscripts, *args)
 
   def optimized_func(*args):
