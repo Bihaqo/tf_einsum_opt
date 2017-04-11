@@ -27,9 +27,16 @@ def my_timeit(tens, sess):
 
 def freeze_args(argument_list, sess):
   cheap_args = []
+  # TODO: dirty hack, but I don't know what else to do.
+  # Multiplying by a random number will force TF not to cache computations while
+  # adding a small overhead.
+  # https://stackoverflow.com/questions/43342507/how-to-reliably-measure-time-of-sess-run-in-tensorflow
+  const = tf.random_normal((1,))[0]
   for argument in argument_list:
     shape = sess.run(tf.shape(argument))
-    cheap_args.append(tf.constant(np.random.rand(*shape)))
+    new_arg = tf.constant(np.random.rand(*shape))
+    new_arg = tf.cast(new_arg, argument.dtype)
+    cheap_args.append(const * new_arg)
   return cheap_args
 
 
@@ -134,8 +141,8 @@ def optimizer(f, sess, *args):
       print('Einsum improvements haven\'t found, good work!')
 
   if rel_savings_combined > 0:
-    print('The overall predicted savings from all the recommendations are %f%%' %
-          (100 * rel_savings_combined))
+    print('The overall predicted savings from all the recommendations are '
+          '%0.1f%%' % (100 * rel_savings_combined))
 
   def my_optimizing_einsum(subscripts, *args):
     caller = getframeinfo(stack()[1][0])
