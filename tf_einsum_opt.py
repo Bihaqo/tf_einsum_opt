@@ -17,7 +17,9 @@ def my_timeit(tens, sess):
         end = timeit.default_timer()
         current_time = end - start
       except tf.errors.ResourceExhaustedError:
-        current_time = np.inf
+        # If the version we are profiling overflows memory, it probably doesn't
+        # worth spending time on it.
+        return np.inf
       best_of_three = min(best_of_three, current_time)
     timings.append(best_of_three)
   return np.mean(timings)
