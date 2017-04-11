@@ -117,14 +117,14 @@ def optimizer(f, sess, *args):
     global_rel_savings = absolute_savings / float(vanilla_whole_runtime)
     best_order_idx = np.argmax(global_rel_savings)
     best_order = orders[best_order_idx]
-    rel_savings_combined += global_rel_savings[best_order_idx]
     best_rel_improvement = global_rel_savings[best_order_idx]
     if best_rel_improvement >= 0.1:
       print('By changing the order of einsum in "%s" to %s you program will '
             'run %0.1f %% faster.' % (caller_str, best_order,
                                       100 * best_rel_improvement))
+      rel_savings_combined += global_rel_savings[best_order_idx]
     else:
       print('Einsum improvements haven\'t found, good work!')
 
   print('The overall predicted savings from all the recommendations are %f%%' %
-        rel_savings_combined)
+        100 * rel_savings_combined)
