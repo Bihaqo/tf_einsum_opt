@@ -60,6 +60,7 @@ def optimize_einsum(struct, sess):
 def optimizer(f, sess, *args):
   cache = {}
   original_einsum = tf.einsum
+
   def my_einsum(subscripts, *args):
     caller = getframeinfo(stack()[1][0])
     caller_str = "%s:%d" % (caller.filename, caller.lineno)
@@ -81,41 +82,49 @@ def optimizer(f, sess, *args):
   vanilla_whole_runtime = my_timeit(f_out, sess)
   print('The running time of the whole function is %f s' % vanilla_whole_runtime)
   for caller_str in cache:
-    subscripts = cache[caller_str]['subscripts']
+    curr_subscripts = cache[caller_str]['subscripts']
     arguments = cache[caller_str]['arguments']
     cache[caller_str]['cheap_args'] = []
     cur_timings = np.zeros(len(arguments))
     for i in range(len(arguments)):
       cheap_args = freeze_args(arguments[i], sess)
       cache[caller_str]['cheap_args'].append(cheap_args)
-      curr_tens = original_einsum(subscripts, *cheap_args)
+      curr_tens = original_einsum(curr_subscripts, *cheap_args)
       cur_timings[i] = my_timeit(curr_tens, sess)
     cache[caller_str]['timings'] = cur_timings
-  vanilla_einsum_runtime = [np.sum(cache[s]['timings']) for s in cache]
+  vanilla_einsum_runtime = [np.sum(cache[s]['timings']) for s in cache.keys()]
   print('Einsums constitue %0.1f %% of the running time (%f s).' %
         (100 * np.sum(vanilla_einsum_runtime) / vanilla_whole_runtime,
          np.sum(vanilla_einsum_runtime)))
 
-  worst_einsum_idx = np.argmax(vanilla_einsum_runtime)
-  worst_einsum = list(cache)[worst_einsum_idx]
-  vanilla_wors_timings = cache[worst_einsum]['timings']
-  print('The slowest einsum (on which we gonna focus) is located in %s and it '
-        'constitues %0.1f %% of the running time of the whole function (%f s).' %
-        (worst_einsum, 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime,
-         np.sum(vanilla_wors_timings)))
+  slowest_to_fastest = np.argsort(vanilla_einsum_runtime)
+  rel_savings_combined = 0
+  for idx in range(len(slowest_to_fastest)):
+    caller_str = cache.keys()[slowest_to_fastest[idx]]
+    vanilla_einsum_timings = cache[caller_str]['timings']
+    rel_timing = np.sum(vanilla_einsum_timings) / vanilla_whole_runtime
+    if rel_timing < 0.1:
+      print('The rest of einsums are using < 10%% of the overall running time '
+            'each, we will not gain much by optimizing them.')
+      break
 
-  if 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime < 10:
-    print('Nothing to improve, einsums are already too fast.')
-    return
+    print('Optimizing einsum in %s, it constitutes it constitues %0.1f%% of '
+          'the overall running time (%f s).' % (caller_str, 100 * rel_timing,
+                                                np.sum(vanilla_einsum_timings)))
 
-  timings_table, orders = optimize_einsum(cache[worst_einsum], sess)
-  absolute_savings = np.sum(vanilla_wors_timings - timings_table, axis=1)
-  global_rel_savings = (absolute_savings) / float(vanilla_whole_runtime)
-  best_order_idx = np.argmax(global_rel_savings)
-  best_order = orders[best_order_idx]
-  best_improovement = 100 * global_rel_savings[best_order_idx]
-  if best_improovement >= 20:
-    print('By changing the order of einsum in "%s" to %s you program will run '
-          '%0.1f %% faster.' % (worst_einsum, best_order, best_improovement))
-  else:
-    print('Einsum improvements haven\'t found, good work!')
+    timings_table, orders = optimize_einsum(cache[caller_str], sess)
+    absolute_savings = np.sum(vanilla_einsum_timings - timings_table, axis=1)
+    global_rel_savings = absolute_savings / float(vanilla_whole_runtime)
+    best_order_idx = np.argmax(global_rel_savings)
+    best_order = orders[best_order_idx]
+    rel_savings_combined += global_rel_savings[best_order_idx]
+    best_rel_improvement = global_rel_savings[best_order_idx]
+    if best_rel_improvement >= 0.1:
+      print('By changing the order of einsum in "%s" to %s you program will '
+            'run %0.1f %% faster.' % (caller_str, best_order,
+                                      100 * best_rel_improvement))
+    else:
+      print('Einsum improvements haven\'t found, good work!')
+
+  print('The overall predicted savings from all the recommendations are %f%%' %
+        rel_savings_combined)
