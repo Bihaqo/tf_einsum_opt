@@ -98,7 +98,7 @@ def optimizer(f, sess, *args):
          np.sum(vanilla_einsum_runtime)))
 
   slowest_to_fastest = np.argsort(vanilla_einsum_runtime)[::-1]
-  rel_savings_combined = 0
+  rel_savings_combined = 0.0
   for idx in range(len(slowest_to_fastest)):
     caller_str = cache.keys()[slowest_to_fastest[idx]]
     vanilla_einsum_timings = cache[caller_str]['timings']
@@ -126,5 +126,6 @@ def optimizer(f, sess, *args):
     else:
       print('Einsum improvements haven\'t found, good work!')
 
-  print('The overall predicted savings from all the recommendations are %f%%' %
-        100 * rel_savings_combined)
+  if rel_savings_combined > 0:
+    print('The overall predicted savings from all the recommendations are %f%%' %
+          (100 * rel_savings_combined))
