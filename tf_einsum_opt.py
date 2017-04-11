@@ -97,7 +97,7 @@ def optimizer(f, sess, *args):
         (100 * np.sum(vanilla_einsum_runtime) / vanilla_whole_runtime,
          np.sum(vanilla_einsum_runtime)))
 
-  slowest_to_fastest = np.argsort(vanilla_einsum_runtime)
+  slowest_to_fastest = np.argsort(vanilla_einsum_runtime)[::-1]
   rel_savings_combined = 0
   for idx in range(len(slowest_to_fastest)):
     caller_str = cache.keys()[slowest_to_fastest[idx]]
