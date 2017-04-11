@@ -104,7 +104,7 @@ def optimizer(f, sess, *args):
         (worst_einsum, 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime,
          np.sum(vanilla_wors_timings)))
 
-  if np.sum(vanilla_wors_timings) / vanilla_whole_runtime < 10:
+  if 100 * np.sum(vanilla_wors_timings) / vanilla_whole_runtime < 10:
     print('Nothing to improve, einsums are already too fast.')
     return
 
