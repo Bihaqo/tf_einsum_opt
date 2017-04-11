@@ -96,7 +96,7 @@ def optimizer(f, sess, *args):
         (100 * np.sum(vanilla_einsum_runtime) / vanilla_whole_runtime,
          np.sum(vanilla_einsum_runtime)))
 
-  worst_einsum_idx = np.argmax([np.max(cache[s]['timings']) for s in cache])
+  worst_einsum_idx = np.argmax(vanilla_einsum_runtime)
   worst_einsum = list(cache)[worst_einsum_idx]
   vanilla_wors_timings = cache[worst_einsum]['timings']
   print('The slowest einsum (on which we gonna focus) is located in %s and it '
