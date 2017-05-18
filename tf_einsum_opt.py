@@ -32,6 +32,7 @@ def freeze_args(argument_list, sess):
   # adding a small overhead.
   # https://stackoverflow.com/questions/43342507/how-to-reliably-measure-time-of-sess-run-in-tensorflow
   const = tf.random_normal((1,))[0]
+  const = tf.cast(const, argument_list[0].dtype)
   for argument in argument_list:
     shape = sess.run(tf.shape(argument))
     new_arg = tf.constant(np.random.rand(*shape))
