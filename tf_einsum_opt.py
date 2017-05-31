@@ -114,7 +114,7 @@ def optimizer(f, sess, *args):
   rel_savings_combined = 0.0
   improved_orders = {}
   for idx in range(len(slowest_to_fastest)):
-    caller_str = cache.keys()[slowest_to_fastest[idx]]
+    caller_str = list(cache.keys())[slowest_to_fastest[idx]]
     vanilla_einsum_timings = cache[caller_str]['timings']
     rel_timing = np.sum(vanilla_einsum_timings) / vanilla_whole_runtime
     if rel_timing < 0.1:
